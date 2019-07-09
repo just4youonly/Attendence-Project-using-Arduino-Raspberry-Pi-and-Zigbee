@@ -1,0 +1,244 @@
+<?php
+
+
+class Dao { 
+	private $servername = "localhost";
+	private $username = "project";
+	private $password = "ourraspberry";
+	private $conn ;
+	//--------------------------------------------------------------------------
+	public function connect(){
+		try {
+		    $this->conn = new PDO("mysql:host=$this->servername;dbname=final_project", $this->username, $this->password);
+		    $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+		    }
+		catch(PDOException $e)
+		    {
+
+		    }
+	}
+	//--------------------------------------------------------------------------
+	public function disconnect(){
+		if($this->conn != null ){
+			$this->conn = null ; 
+		}	
+	}
+	//--------------------------------------------------------------------------
+	public function select_tracher($username ,$password ){
+		$this->connect();
+
+		try{
+			$stmt = $this->conn->query("SELECT teacherPass , teacherId FROM teacher where teacherId='".$username."' ");
+			$row = $stmt->fetch();
+			$password1 = $row[0];
+			$username1 = $row[1] ;
+			if($password==$password1 && $username==$username1 ){
+				return $username1 ; 
+			}
+			else{
+				return "false";
+			}
+		}
+		catch(PDOException $e){
+			echo "Error: " . $e->getMessage();
+		}
+		$this->disconnect();
+	}
+
+//--------------------------------------------------------------------------
+	public function getTeacherSubject($TeacherId){
+		$this->connect();
+
+		try{
+			$stmt = $this->conn->query("SELECT DISTINCT subject.subjectId, subject.subjectName FROM subject inner join `student_teacher_subject` on subject.subjectId = student_teacher_subject.subjectId where student_teacher_subject.teacherId = '".$TeacherId."' ");
+			$count = $stmt->rowCount();			
+			$myObj = new \stdClass();
+			$myObj1 = new \stdClass();
+			$i=0;
+			$myObj1->$i= $count ;
+			while ($row = $stmt->fetch()) {
+				$i++;
+				$myObj->subjectId=$row["subjectId"];
+				$myObj->subjectName=$row["subjectName"];
+				$myJSON = json_encode($myObj);
+		   		$myObj1->$i=$myJSON ;
+
+			}
+
+			return json_encode($myObj1);
+			
+		}
+		catch(PDOException $e){
+			echo "Error: " . $e->getMessage();
+		}
+		$this->disconnect();
+	}
+//--------------------------------------------------------------------------
+	public function getSubjectCount($TeacherId ,$subjectId ){
+		$this->connect();
+		try{
+			$stmt = $this->conn->query("SELECT COUNT(attendanceId) from attendance where teacherId =  '".$TeacherId."' AND subjectId =  '".$subjectId."' ");
+
+			$row = $stmt->fetch();
+			return $row[0];
+		}
+		catch(PDOException $e){
+			echo "Error: " . $e->getMessage();
+		}
+		$this->disconnect();
+	}
+//--------------------------------------------------------------------------
+	public function getSubjectStuent($TeacherId ,$subjectId){
+		$this->connect();
+
+		try{
+			$stmt = $this->conn->query("select student.studentId, student.studentName, student.studentSurname from student inner join student_teacher_subject on student.studentId = student_teacher_subject.studentId where student_teacher_subject.teacherId = 1 and student_teacher_subject.subjectId = '""' ");
+			$count = $stmt->rowCount();			
+			$myObj = new \stdClass();
+			$myObj1 = new \stdClass();
+			$i=0;
+			$myObj1->$i= $count ;
+			while ($row = $stmt->fetch()) {
+				$i++;
+				$myObj->studentId=$row["studentId"];
+				$myObj->studentName=$row["studentName"];
+				$myObj->studentSurname=$row["studentSurname"];
+				$myObj->count=$row["5"];
+				$myJSON = json_encode($myObj);
+		   		$myObj1->$i=$myJSON ;
+
+			}
+
+			return json_encode($myObj1);
+			
+		}
+		catch(PDOException $e){
+			echo "Error: " . $e->getMessage();
+		}
+		$this->disconnect();
+	}
+//--------------------------------------------------------------------------
+	public function getSubjectDates($TeacherId ,$subjectId){
+		$this->connect();
+
+		try{
+			$stmt = $this->conn->query("select attendance.date from attendance where attendance.subjectId = '".$subjectId."' and attendance.teacherId = '".$TeacherId."' ");
+			$count = $stmt->rowCount();			
+			$myObj = new \stdClass();
+			$myObj1 = new \stdClass();
+			$i=0;
+			$myObj1->$i= $count ;
+			while ($row = $stmt->fetch()) {
+				$i++;
+				$myObj->date=$row["date"];
+				$myJSON = json_encode($myObj);
+		   		$myObj1->$i=$myJSON ;
+
+			}
+
+			return json_encode($myObj1);
+			
+		}
+		catch(PDOException $e){
+			echo "Error: " . $e->getMessage();
+		}
+		$this->disconnect();
+	}
+//--------------------------------------------------------------------------
+	public function getStudentdetails($TeacherId ,$subjectId,$studentId){
+		$this->connect();
+
+		try{
+			$stmt = $this->conn->query("select attendance_records.attendanceStatus, attendance.date from attendance_records inner JOIN attendance on attendance_records.attendanceId = attendance.attendanceId where attendance.teacherId = '".$TeacherId."' and attendance.subjectId = '".$subjectId."' and attendance_records.studentId ='".$studentId."'");
+			$count = $stmt->rowCount();			
+			$myObj = new \stdClass();
+			$myObj1 = new \stdClass();
+			$i=0;
+			$myObj1->$i= $count ;
+			while ($row = $stmt->fetch()) {
+				$i++;
+				$myObj->date=$row["date"];
+				$myObj->attendanceStatus=$row["attendanceStatus"];
+				$myJSON = json_encode($myObj);
+		   		$myObj1->$i=$myJSON ;
+
+			}
+
+			return json_encode($myObj1);
+			
+		}
+		catch(PDOException $e){
+			echo "Error: " . $e->getMessage();
+		}
+		$this->disconnect();
+	}
+//--------------------------------------------------------------------------
+	public function getAttendance($TeacherId,$subjectId,$date){
+		$this->connect();
+
+		try{
+			$stmt = $this->conn->query("SELECT attendance_records.attendanceId, student.studentId, student.studentName, student.studentSurname, attendance_records.attendanceStatus from attendance_records inner JOIN student on attendance_records.studentId = student.studentId inner join attendance on attendance_records.attendanceId = attendance.attendanceId where attendance.teacherId = '".$TeacherId."' and attendance.subjectId = '".$subjectId."' and attendance.date = '".$date."' ");
+			$count = $stmt->rowCount();			
+			$myObj = new \stdClass();
+			$myObj1 = new \stdClass();
+			$i=0;
+			$myObj1->$i= $count ;
+			while ($row = $stmt->fetch()) {
+				$i++;
+				$myObj->attendanceId=$row["attendanceId"];
+				$myObj->studentId=$row["studentId"];
+				$myObj->studentName=$row["studentName"];
+				$myObj->studentSurname = $row["studentSurname"];
+				$myObj->attendanceStatus=$row["attendanceStatus"];
+				$myJSON = json_encode($myObj);
+		   		$myObj1->$i=$myJSON ;
+
+			}
+
+			return json_encode($myObj1);
+			
+		}
+		catch(PDOException $e){
+			echo "Error: " . $e->getMessage();
+		}
+		$this->disconnect();
+	}
+//--------------------------------------------------------------------------
+	public function updateStudentState($username,$attendanceId,$studentId,$status){
+		$this->connect();
+		try{
+			$stmt = $this->conn->prepare("UPDATE attendance_records SET attendanceStatus = '".$status."' WHERE attendance_records.attendanceId = '".$attendanceId."' AND attendance_records.studentId = '".$studentId."'"); 
+			$stmt->execute();
+		}	
+		catch(PDOException $e){
+			echo "Error: " . $e->getMessage();
+		}
+
+		$this->disconnect();
+	}
+//--------------------------------------------------------------------------
+	public function changeStatus($attendanceId , $status ){
+		$this->connect();
+		try{
+
+			if($status=="all"){
+				$stmt = $this->conn->prepare("UPDATE attendance_records SET attendanceStatus = 'PRESENT' WHERE attendance_records.attendanceId = '".$attendanceId."' "); 
+			}else if($status=="yellow"){
+				$stmt = $this->conn->prepare("UPDATE attendance_records SET attendanceStatus = 'PRESENT' WHERE attendance_records.attendanceId = '".$attendanceId."' AND attendance_records.attendanceStatus = 'NEUTRAL' "); 
+			}
+			
+			$stmt->execute();
+		}	
+		catch(PDOException $e){
+			echo "Error: " . $e->getMessage();
+		}
+
+		$this->disconnect();
+	}
+
+}
+
+?>
+
+
+

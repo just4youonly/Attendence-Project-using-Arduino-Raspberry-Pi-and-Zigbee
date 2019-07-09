@@ -1,0 +1,61 @@
+
+@media only screen and (max-width: 900px) {
+  .logo img{
+    width: 100%;
+    margin-left: 0%;
+    height: 80% ;
+    margin-bottom: 2px;
+  }
+  h3{
+    margin-left: 12.5%;
+    font-size:3.2vw;
+  }
+  
+  #tr{
+    transform: none;
+    border:2px solid #c53333;
+  }
+}
+tr:hover{
+  transform: none;
+  border:2px solid 212f70;
+  background-color:#58968900 !important;
+  color:black;
+}
+
+@media only screen and (max-width: 575px) {
+  .table{
+    margin-left: 12%;
+  }
+  .jumbotron {
+    width: 100%;
+    margin-left: 0%;
+  }
+  table{
+    font-size:2.8vw;
+  }
+  .days li {
+    font-size:10px;
+  }
+  .month a{
+    font-size:12px;
+  }
+}
+
+@media only screen and (max-width: 410px) {
+  .table{
+    margin-left: 8%;
+  }
+}
+@media only screen and (max-width: 800px) {
+  .filterDiv {
+    width: 95% !important;
+  }
+}
+@media only screen and (max-width: 100px) {
+  .filterDiv {
+    width: 46% !important;
+    font-size:2vw;
+  }
+}
+
