@@ -1,0 +1,454 @@
+-- phpMyAdmin SQL Dump
+-- version 4.8.5
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1
+-- Generation Time: Jul 09, 2019 at 02:36 PM
+-- Server version: 10.1.39-MariaDB
+-- PHP Version: 7.3.5
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET AUTOCOMMIT = 0;
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Database: `omu`
+--
+
+DELIMITER $$
+--
+-- Procedures
+--
+CREATE DEFINER=`project`@`%` PROCEDURE `insert_students` (IN `attendanceId` INT(11))  NO SQL
+insert into attendance_records (attendanceId, studentId, teacherId, subjectId) select attendance.attendanceId, student_teacher_subject.studentId, student_teacher_subject.teacherId, student_teacher_subject.subjectId from attendance inner JOIN student_teacher_subject on attendance.subjectId = student_teacher_subject.subjectId and attendance.teacherId = student_teacher_subject.teacherId where attendance.attendanceId = attendanceId$$
+
+CREATE DEFINER=`project`@`localhost` PROCEDURE `insert_students_attendance` (IN `teacherId` INT(11), IN `subjectId` INT(11))  NO SQL
+insert into attendance_records (attendanceId, studentId, teacherId, subjectId) select attendance.attendanceId, student_teacher_subject.studentId, student_teacher_subject.teacherId, student_teacher_subject.subjectId from attendance inner JOIN student_teacher_subject on attendance.subjectId = student_teacher_subject.subjectId and attendance.teacherId = student_teacher_subject.teacherId where student_teacher_subject.subjectId = subjectId and student_teacher_subject.teacherId = teacherId$$
+
+CREATE DEFINER=`project`@`%` PROCEDURE `update_students` (IN `stuId` INT(11), IN `atId` INT(11))  NO SQL
+UPDATE attendance_records SET loginDate = IF( loginDate IS NULL, ADDTIME(CURTIME(), '03:00:00'), loginDate), logoutDate = ADDTIME(CURTIME(), '03:00:00'), attendanceStatus = if( loginDate IS NOT NULL , 'NEUTRAL', attendanceStatus), attendanceStatus = if( logoutDate = loginDate, attendanceStatus, 'PRESENT') WHERE studentId = stuId AND attendanceId = atId$$
+
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin`
+--
+
+CREATE TABLE `admin` (
+  `adminId` int(11) NOT NULL,
+  `adminUsername` varchar(50) NOT NULL,
+  `adminPassword` varchar(25) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `admin`
+--
+
+INSERT INTO `admin` (`adminId`, `adminUsername`, `adminPassword`) VALUES
+(1, 'adnan', 'adnan');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `attendance`
+--
+
+CREATE TABLE `attendance` (
+  `attendanceId` int(11) NOT NULL,
+  `subjectId` int(11) NOT NULL,
+  `teacherId` int(11) NOT NULL,
+  `date` date DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `attendance`
+--
+
+INSERT INTO `attendance` (`attendanceId`, `subjectId`, `teacherId`, `date`) VALUES
+(1, 22, 101, '2019-05-22'),
+(2, 22, 101, '2019-05-22');
+
+--
+-- Triggers `attendance`
+--
+DELIMITER $$
+CREATE TRIGGER `insert_current_date` BEFORE INSERT ON `attendance` FOR EACH ROW SET NEW.date = NOW()
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `attendance_records`
+--
+
+CREATE TABLE `attendance_records` (
+  `attendanceId` int(11) NOT NULL,
+  `studentId` int(11) NOT NULL,
+  `teacherId` int(11) NOT NULL,
+  `subjectId` int(11) NOT NULL,
+  `loginDate` time DEFAULT NULL,
+  `logoutDate` time DEFAULT NULL,
+  `attendanceStatus` enum('PRESENT','ABSENT','NEUTRAL') NOT NULL DEFAULT 'ABSENT'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `attendance_records`
+--
+
+INSERT INTO `attendance_records` (`attendanceId`, `studentId`, `teacherId`, `subjectId`, `loginDate`, `logoutDate`, `attendanceStatus`) VALUES
+(1, 214, 101, 22, '11:08:07', '01:01:08', 'PRESENT');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `student`
+--
+
+CREATE TABLE `student` (
+  `studentId` int(11) NOT NULL,
+  `fingerId` varchar(300) DEFAULT NULL,
+  `studentName` varchar(50) NOT NULL,
+  `studentSurname` varchar(50) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `student`
+--
+
+INSERT INTO `student` (`studentId`, `fingerId`, `studentName`, `studentSurname`) VALUES
+(214, NULL, 'adnana', 'sdsad'),
+(215, '44', 'hhhhhj', 'hhhh'),
+(216, '45', 'wqewqe', 'qweqwe'),
+(217, '46', 'asdasdasdasdasdasd', 'asdasassdads'),
+(218, NULL, 'adasd', 'sadasd'),
+(219, NULL, 'asdaasd', 'sasadas'),
+(220, NULL, 'sadatasd', 'sadad'),
+(221, NULL, 'sdfd', 'dfgdfg'),
+(224, NULL, 'sddsf', 'sdfdsf'),
+(225, NULL, 'asdasd', 'asdad'),
+(226, NULL, 'asdads', 'asd'),
+(227, NULL, 'asdasda', 'sasdad'),
+(228, NULL, 'asdad', 'ads'),
+(229, NULL, 'sdf', 'zc'),
+(230, NULL, 'asdasd', 'asdad'),
+(231, NULL, 'zxc', 'zxczc');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `subject`
+--
+
+CREATE TABLE `subject` (
+  `subjectId` int(11) NOT NULL,
+  `subjectName` varchar(50) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `subject`
+--
+
+INSERT INTO `subject` (`subjectId`, `subjectName`) VALUES
+(22, 'mats'),
+(24, 'sdfsfdsf'),
+(25, 'sdfsfdsf'),
+(26, 'fffff'),
+(27, 'dsfsfsfs'),
+(28, 'dfsfsdfsf'),
+(29, 'asdasdasdadasd'),
+(30, 'adasdads'),
+(31, 'adasdasd'),
+(32, 'asdasdasdasd'),
+(33, 'adasdadasd');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sub_teach_stu`
+--
+
+CREATE TABLE `sub_teach_stu` (
+  `subjectId` int(11) NOT NULL,
+  `teacherId` int(11) NOT NULL,
+  `studentId` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `sub_teach_stu`
+--
+
+INSERT INTO `sub_teach_stu` (`subjectId`, `teacherId`, `studentId`) VALUES
+(22, 101, 214),
+(22, 101, 215),
+(24, 103, 215),
+(24, 104, 214),
+(25, 101, 214),
+(26, 104, 214),
+(27, 102, 214),
+(28, 102, 214);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `teacher`
+--
+
+CREATE TABLE `teacher` (
+  `teacherId` int(11) NOT NULL,
+  `fingerId` varchar(300) DEFAULT NULL,
+  `teacherName` varchar(50) NOT NULL,
+  `teacherSurname` varchar(50) NOT NULL,
+  `teacherPassword` varchar(25) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `teacher`
+--
+
+INSERT INTO `teacher` (`teacherId`, `fingerId`, `teacherName`, `teacherSurname`, `teacherPassword`) VALUES
+(101, NULL, 'adnan', 'mehart', 'adnan'),
+(102, NULL, 'erwe', 'wrwr', 'wrw'),
+(103, NULL, 'dd', 'dd', 'sdf'),
+(104, NULL, 'sadas', 'adasd', 'asdad'),
+(105, NULL, 'asdasd', 'sdasd', 'ada'),
+(106, NULL, 'asd', 'asdasd', 'asdasd'),
+(107, NULL, 'asdasd', 'asdasd', 'asdd'),
+(108, NULL, 'asdasd', 'asd', 'asd'),
+(109, NULL, 'asas', 'assa', 'assa'),
+(110, NULL, 'asdad', 'asdasd', 'asdad'),
+(111, NULL, 'sda', 'sada', 'asda'),
+(112, NULL, 'dsfsd', 'fsdf', 'sdfsdf'),
+(113, NULL, 'dfgg', 'dfg', 'fd'),
+(114, NULL, 'asdsad', 'asdad', 'asda'),
+(115, NULL, 'asd', 'asdadasd', 'asda'),
+(116, NULL, 'asda', 'asdasdasd', 'asdasd'),
+(117, NULL, 'wdfsfdsf', 'sdfsd', 'fsdfsdf'),
+(118, NULL, 'sres', 'sdfd', 'ssdfs'),
+(119, NULL, 'adas', 'dsdaasd', 'asdasd'),
+(120, NULL, 'asd', 'asdasd', 'asdads'),
+(121, NULL, 'ZXX', 'ZX', 'ZX'),
+(122, NULL, 'asdd', 'asd', 'asdd'),
+(123, NULL, 'sdfsdf', 'sdf', 'zdfzf'),
+(124, NULL, 'xcz', 'cxzc', 'zxczxc'),
+(125, NULL, 'asdasd', 'ads', 'asd'),
+(126, NULL, 'zxc', 'zxc', 'zxc'),
+(127, NULL, 'asdad', 'asdasad', 'asdsd'),
+(128, NULL, 'dasd', 'asdasd', 'asdad'),
+(129, NULL, 'asd', 'asd', 'asd'),
+(130, NULL, 'asx', 'asxas', 'asxsx'),
+(131, NULL, 'asd', 'asd', 'asda'),
+(132, NULL, 'Sa', 'SAs', 'asA'),
+(133, NULL, 'asd', 'sad', 'asdasd'),
+(134, NULL, 'asd', 'asdasd', 'asdas');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `teacher_subject`
+--
+
+CREATE TABLE `teacher_subject` (
+  `teacherId` int(11) NOT NULL,
+  `subjectId` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `teacher_subject`
+--
+
+INSERT INTO `teacher_subject` (`teacherId`, `subjectId`) VALUES
+(101, 22),
+(101, 25),
+(101, 26),
+(102, 22),
+(102, 27),
+(102, 28),
+(103, 22),
+(103, 24),
+(103, 25),
+(104, 24),
+(104, 25),
+(104, 26),
+(117, 25),
+(117, 26),
+(117, 27),
+(117, 28),
+(117, 29),
+(117, 31),
+(117, 32),
+(117, 33);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `url`
+--
+
+CREATE TABLE `url` (
+  `id` int(11) NOT NULL,
+  `domainName` varchar(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `url`
+--
+
+INSERT INTO `url` (`id`, `domainName`) VALUES
+(1, 'ad');
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `admin`
+--
+ALTER TABLE `admin`
+  ADD PRIMARY KEY (`adminId`);
+
+--
+-- Indexes for table `attendance`
+--
+ALTER TABLE `attendance`
+  ADD PRIMARY KEY (`attendanceId`),
+  ADD KEY `subjectId_2` (`subjectId`),
+  ADD KEY `teacherId_fk3` (`teacherId`);
+
+--
+-- Indexes for table `attendance_records`
+--
+ALTER TABLE `attendance_records`
+  ADD PRIMARY KEY (`attendanceId`,`studentId`),
+  ADD KEY `attendanceId` (`attendanceId`),
+  ADD KEY `subjectId_3` (`subjectId`),
+  ADD KEY `teacherId_fk2` (`teacherId`),
+  ADD KEY `studentId_fk1` (`studentId`);
+
+--
+-- Indexes for table `student`
+--
+ALTER TABLE `student`
+  ADD PRIMARY KEY (`studentId`);
+
+--
+-- Indexes for table `subject`
+--
+ALTER TABLE `subject`
+  ADD PRIMARY KEY (`subjectId`);
+
+--
+-- Indexes for table `sub_teach_stu`
+--
+ALTER TABLE `sub_teach_stu`
+  ADD PRIMARY KEY (`subjectId`,`teacherId`,`studentId`),
+  ADD KEY `teacherId_fk1` (`teacherId`),
+  ADD KEY `studentId_fk2` (`studentId`);
+
+--
+-- Indexes for table `teacher`
+--
+ALTER TABLE `teacher`
+  ADD PRIMARY KEY (`teacherId`);
+
+--
+-- Indexes for table `teacher_subject`
+--
+ALTER TABLE `teacher_subject`
+  ADD PRIMARY KEY (`teacherId`,`subjectId`),
+  ADD KEY `subjectId_fk2` (`subjectId`);
+
+--
+-- Indexes for table `url`
+--
+ALTER TABLE `url`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `admin`
+--
+ALTER TABLE `admin`
+  MODIFY `adminId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `attendance`
+--
+ALTER TABLE `attendance`
+  MODIFY `attendanceId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `student`
+--
+ALTER TABLE `student`
+  MODIFY `studentId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=232;
+
+--
+-- AUTO_INCREMENT for table `subject`
+--
+ALTER TABLE `subject`
+  MODIFY `subjectId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
+
+--
+-- AUTO_INCREMENT for table `teacher`
+--
+ALTER TABLE `teacher`
+  MODIFY `teacherId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=135;
+
+--
+-- AUTO_INCREMENT for table `url`
+--
+ALTER TABLE `url`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `attendance`
+--
+ALTER TABLE `attendance`
+  ADD CONSTRAINT `subjectId_fk2` FOREIGN KEY (`subjectId`) REFERENCES `subject` (`subjectId`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `teacherId_fk3` FOREIGN KEY (`teacherId`) REFERENCES `teacher` (`teacherId`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `attendance_records`
+--
+ALTER TABLE `attendance_records`
+  ADD CONSTRAINT `attendanceId` FOREIGN KEY (`attendanceId`) REFERENCES `attendance` (`attendanceId`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `studentId_fk1` FOREIGN KEY (`studentId`) REFERENCES `student` (`studentId`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `subjectId_fk4` FOREIGN KEY (`subjectId`) REFERENCES `subject` (`subjectId`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `teacherId_fk2` FOREIGN KEY (`teacherId`) REFERENCES `teacher` (`teacherId`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `sub_teach_stu`
+--
+ALTER TABLE `sub_teach_stu`
+  ADD CONSTRAINT `studentId_fk2` FOREIGN KEY (`studentId`) REFERENCES `student` (`studentId`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `subjectId_fk1` FOREIGN KEY (`subjectId`) REFERENCES `subject` (`subjectId`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `teacherId_fk1` FOREIGN KEY (`teacherId`) REFERENCES `teacher` (`teacherId`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `teacher_subject`
+--
+ALTER TABLE `teacher_subject`
+  ADD CONSTRAINT `subjectId_fk3` FOREIGN KEY (`subjectId`) REFERENCES `subject` (`subjectId`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `teacherId_fk4` FOREIGN KEY (`teacherId`) REFERENCES `teacher` (`teacherId`) ON DELETE CASCADE ON UPDATE CASCADE;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
