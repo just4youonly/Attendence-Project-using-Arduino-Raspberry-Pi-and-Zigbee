@@ -1,0 +1,470 @@
+#include <LiquidCrystal.h>
+#include <Adafruit_Fingerprint.h>
+#include <Keypad.h>
+#include <string.h>
+#include <stdlib.h>
+
+// KEYPAD
+String subjectId = "";
+const byte ROWS = 4; //four rows
+const byte COLS = 3; //three columns
+
+char keys[ROWS][COLS] = {
+  {'1','2','3'},
+  {'4','5','6'},
+  {'7','8','9'},
+  {'*','0','#'}
+};
+byte rowPins[ROWS] = {10, 9, 8, 7}; //connect to the row pinouts of the keypad
+byte colPins[COLS] = {6, 5, 4}; //connect to the column pinouts of the keypad
+
+//Create an object of keypad
+Keypad myKeypad = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+// KEYPAD
+
+LiquidCrystal lcd(A1, A0, A5, A4, A3 , A2); /// REGISTER SELECT PIN,ENABLE PIN,D4 PIN,D5 PIN, D6 PIN, D7 PIN
+const int ledRed = 12; 
+const int ledGreen = 13;
+enum State { TEACHER, SUBJECT, STUDENT }; // waiting for teacher's finger, waiting for course id, waiting for student id 
+State state;
+
+// FingerPrint
+int studentId; // Student finger id
+int fingerId; // Teacher finger id
+int attendanceId; // Teacher attendance id
+int teacherId;
+
+SoftwareSerial mySerial(3, 2);
+Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
+// FingerPrint
+
+
+void setup() {
+  // put your setup code here, to run once:
+  // FINGERPRINT
+  
+  Serial.begin(9600);
+  
+  while (!Serial); 
+  delay(50);
+  //Serial.println("\n\nAdafruit finger detect test");
+  // set the data rate for the sensor Serial port
+  finger.begin(57600);
+  //
+  if (finger.verifyPassword()) {
+    //Serial.println("Found fingerprint sensor!");
+  } else { 
+   //while (1) { delay(1); }
+  }
+  // FINGERPRINT
+  
+  // Leds
+  pinMode(ledRed, OUTPUT);
+  pinMode(ledGreen, OUTPUT);
+  digitalWrite(ledRed, HIGH);
+  // Leds
+  
+  // LCD 
+  analogWrite(11, 70);
+  lcd.begin(16, 2);
+  lcd.print(" Waiting for ");
+  lcd.setCursor(0,1);
+  lcd.print(" teacher...");
+  // LCD 
+  state = TEACHER;
+}
+String incomingByte = "";
+char *info [3];
+int f_id;
+int id;
+int method;
+void loop() {
+  
+  incomingByte = Serial.readString();  
+  if(incomingByte != ""){
+      char str[incomingByte.length() + 1];
+      incomingByte.toCharArray(str, incomingByte.length()+1);
+      char *c = strtok(str, ":");
+      int i = 0;
+      while(c != NULL){
+          info[i] = c;
+          c = strtok(NULL, ":");
+          i++;
+      }
+      
+      int method = atoi(info[0]);
+      switch (method){
+        case 1:
+          f_id = atoi(info[2]);
+          id = atoi(info[1]);
+          while (! getFingerprintEnroll() );
+          Serial.print(incomingByte);
+          method = 0;
+          break;
+        case 2:
+          f_id = atoi(info[2]);
+          id = atoi(info[1]);
+          while (! getFingerprintEnroll() );
+          Serial.print(incomingByte);
+          method = 0;
+          break;
+        case 3:
+          fingerId = atoi(info[1]);
+          subjectId = info[2];
+          lcd.clear();
+          lcd.print("Waiting...");
+          checkTeacherSubject();
+          method = 0;
+          break;
+        default:
+          lcd.clear();
+          lcd.print(" Somthing went ");
+          lcd.setCursor(0,1);
+          lcd.print(" wrong...");
+          state = TEACHER;
+          break;
+      }
+      incomingByte = "";
+  }else{
+      switch(state){
+        case TEACHER:
+          lcd.clear();
+          lcd.print(" Waiting for ");
+          lcd.setCursor(0,1);
+          lcd.print(" teacher...");
+          getTeacherId();
+          break;
+        case SUBJECT:
+          subjectId = getSubject();
+          if(subjectId == "0"){
+            // Go to home menu
+            goHome();
+          }
+          else{
+            checkTeacherSubject();
+          }
+          break;
+        case STUDENT:
+          getStudentId();
+          break;
+        default:
+          break;
+      }
+  }
+  
+  
+  
+}
+// returns -1 if failed, otherwise returns ID #
+int getFingerprintIDez() {
+      uint8_t p = finger.getImage();
+      if (p != FINGERPRINT_OK)  return -1;
+    
+      p = finger.image2Tz();
+      if (p != FINGERPRINT_OK)  return -1;
+    
+      p = finger.fingerFastSearch();
+      if (p != FINGERPRINT_OK)  return -1;
+      
+      digitalWrite(6, HIGH);
+      return finger.fingerID; 
+}
+
+// returns 
+
+void getTeacherId(){
+      fingerId = getFingerprintIDez();
+      if (fingerId > 0 && fingerId < 50){
+        lcd.clear();
+        lcd.print(" Fingerprint ");
+        lcd.setCursor(0,1);
+        lcd.print(" detected.");
+        state = SUBJECT;
+        digitalWrite(ledGreen, HIGH);
+        delay(300);
+        digitalWrite(ledGreen, LOW);
+        lcd.clear();
+      }
+}
+
+String getSubject(){
+      lcd.print(" Enter subject");
+      lcd.setCursor(0, 1);
+      lcd.print(" code: ");
+      String mySubject;
+      char subjectChar = myKeypad.waitForKey();
+      int i;
+      for(i = 0 ; subjectChar != '#'; i++){
+        if (subjectChar != '*'){
+          lcd.setCursor( (7 + i), 1); 
+          lcd.print(subjectChar);
+          mySubject = String(mySubject + subjectChar);
+          subjectChar = myKeypad.waitForKey();
+        }
+        else if(subjectChar == '*' && i > 0){
+          mySubject.remove(i - 1);
+          lcd.setCursor((6 + i), 1);
+          i = i - 2;
+          lcd.print(" ");
+          lcd.setCursor((6 + i), 1);
+          subjectChar = myKeypad.waitForKey();
+        }
+      }
+      digitalWrite(ledGreen, HIGH);
+      return mySubject;
+}
+
+void checkTeacherSubject(){
+      Serial.print(subjectId);
+      Serial.print(":");
+      Serial.print(fingerId);
+      String incomingByte = "";
+      while(incomingByte == ""){
+        incomingByte = Serial.readString();
+        if (incomingByte != "" && incomingByte != "0" && incomingByte != "-1"){
+          char str[incomingByte.length() + 1];
+          incomingByte.toCharArray(str, incomingByte.length()+1);
+          char *c = strtok(str, ":");
+          attendanceId = atoi(c);
+          c = strtok(NULL, ":");
+          teacherId = atoi(c);
+          if (teacherId == fingerId){ // if teacherId(from rasp) equals fingerId(from uno) continue
+            state = STUDENT;
+            digitalWrite(ledGreen, LOW);
+            lcd.clear();
+            lcd.print(" Waiting for");
+            lcd.setCursor(0,1);
+            lcd.print(" student...");
+          }
+          else{                   // if incomingByte is for another arduino 
+            incomingByte = "";
+          }
+        }
+        else if(incomingByte == "0"){
+          digitalWrite(ledGreen, LOW);
+          lcd.clear();
+          lcd.print(" Wrong SiD");
+          delay(500);
+          lcd.clear();
+          state = SUBJECT;
+        }
+        else if(incomingByte == "-1"){
+          digitalWrite(ledGreen, LOW);
+          lcd.clear();
+          lcd.print(" Server Failed.");
+          delay(500);
+          lcd.clear();
+          state = SUBJECT;
+        }
+      }
+}
+
+void getStudentId(){
+      studentId = getFingerprintIDez();
+      if (studentId > 50 && studentId != fingerId){ // Students will have >50 finger ids
+        Serial.print(attendanceId);
+        Serial.print(":");
+        Serial.print(studentId);
+        digitalWrite(ledGreen, HIGH);
+        String incomingByte = "";
+        while(incomingByte == ""){
+          incomingByte = Serial.readString();
+        }
+        if (incomingByte == "1"){
+          digitalWrite(ledGreen, LOW);
+        }
+        else if(incomingByte == "-1"){
+          digitalWrite(ledGreen, LOW);
+          lcd.clear();
+          lcd.print(" Server Failed.");
+          delay(500);
+          lcd.clear();
+          lcd.print(" Waiting for ");
+          lcd.setCursor(0,1);
+          lcd.print(" student...");
+        }
+        
+      }
+      else if( studentId == fingerId){ // Teacher closed system
+        lcd.clear();
+        lcd.print(" System ");
+        lcd.setCursor(0, 1);
+        lcd.print(" deactivated.");
+        digitalWrite(ledGreen, HIGH);
+        delay(300);
+        digitalWrite(ledGreen, LOW);
+        lcd.clear();
+        lcd.print(" Waiting for ");
+        lcd.setCursor(0,1);
+        lcd.print(" teacher...");
+        state = TEACHER;
+        fingerId = 0; // Restart teacher's finger id
+      }
+}
+
+void goHome(){
+      state = TEACHER;
+      lcd.clear();
+      lcd.print(" Waiting for ");
+      lcd.setCursor(0,1);
+      lcd.print(" teacher...");
+      delay(500);
+      digitalWrite(ledGreen, LOW);
+}
+
+uint8_t getFingerprintEnroll() {
+
+  int p = -1;
+  digitalWrite(ledGreen, HIGH);
+  lcd.clear();
+  lcd.print(" Get Fingerprint ");
+  lcd.setCursor(0,1);
+  lcd.print(" for ");
+  lcd.print(id);
+  delay(300);
+  digitalWrite(ledGreen, LOW);
+  while (p != FINGERPRINT_OK) {
+    p = finger.getImage();
+    switch (p) {
+    case FINGERPRINT_OK:
+      lcd.clear();
+      digitalWrite(ledGreen, HIGH);
+      break;
+    case FINGERPRINT_NOFINGER:
+      //Serial.println(".");
+      break;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      //Serial.println("Communication error");
+      break;
+    case FINGERPRINT_IMAGEFAIL:
+      //Serial.println("Imaging error");
+      break;
+    default:
+      //Serial.println("Unknown error");
+      break;
+    }
+  }
+
+  // OK success!
+
+  p = finger.image2Tz(1);
+  switch (p) {
+    case FINGERPRINT_OK:
+      break;
+    case FINGERPRINT_IMAGEMESS:
+      //Serial.println("Image too messy");
+      return p;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      //Serial.println("Communication error");
+      return p;
+    case FINGERPRINT_FEATUREFAIL:
+      //Serial.println("Could not find fingerprint features");
+      return p;
+    case FINGERPRINT_INVALIDIMAGE:
+      //Serial.println("Could not find fingerprint features");
+      return p;
+    default:
+      //Serial.println("Unknown error");
+      return p;
+  }
+  lcd.clear();
+  lcd.print(" Remove finger");
+  delay(1500);
+  p = 0;
+  while (p != FINGERPRINT_NOFINGER) {
+    p = finger.getImage();
+    digitalWrite(ledGreen, LOW);
+  }
+  p = -1;
+  lcd.clear();
+  lcd.print(" Place same ");
+  lcd.setCursor(0,1);
+  lcd.print(" finger again...");
+  while (p != FINGERPRINT_OK) {
+    p = finger.getImage();
+    switch (p) {
+    case FINGERPRINT_OK:
+      digitalWrite(ledGreen, HIGH);
+      break;
+    case FINGERPRINT_NOFINGER:
+      //Serial.print(".");
+      break;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      //Serial.println("Communication error");
+      break;
+    case FINGERPRINT_IMAGEFAIL:
+      //Serial.println("Imaging error");
+      break;
+    default:
+      //Serial.println("Unknown error");
+      break;
+    }
+  }
+
+  // OK success!
+
+  p = finger.image2Tz(2);
+  switch (p) {
+    case FINGERPRINT_OK:
+      break;
+    case FINGERPRINT_IMAGEMESS:
+      //Serial.println("Image too messy");
+      return p;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      //Serial.println("Communication error");
+      return p;
+    case FINGERPRINT_FEATUREFAIL:
+      //Serial.println("Could not find fingerprint features");
+      return p;
+    case FINGERPRINT_INVALIDIMAGE:
+      //Serial.println("Could not find fingerprint features");
+      return p;
+    default:
+      //Serial.println("Unknown error");
+      return p;
+  }
+  
+  // OK converted!
+  p = finger.createModel();
+  if (p == FINGERPRINT_OK) {
+  } else if (p == FINGERPRINT_PACKETRECIEVEERR) {
+    //Serial.println("Communication error");
+    return p;
+  } else if (p == FINGERPRINT_ENROLLMISMATCH) {
+    digitalWrite(ledGreen, LOW);
+    lcd.clear();
+    lcd.print(" Prints not ");
+    lcd.setCursor(0, 1);
+    lcd.print(" match...");
+    delay(500);
+    getFingerprintEnroll();
+  } else {
+    //Serial.println("Unknown error");
+    return p;
+  }  
+  
+  p = finger.storeModel(f_id);
+  if (p == FINGERPRINT_OK) {
+    lcd.clear();
+    lcd.print(" Stored!");
+    delay(700);
+    digitalWrite(ledGreen, LOW);
+    lcd.clear();
+    lcd.print(" Waiting for ");
+    lcd.setCursor(0,1);
+    lcd.print(" teacher...");
+    return true;
+  } else if (p == FINGERPRINT_PACKETRECIEVEERR) {
+    //Serial.println("Communication error");
+    return p;
+  } else if (p == FINGERPRINT_BADLOCATION) {
+    //Serial.println("Could not store in that location");
+    return p;
+  } else if (p == FINGERPRINT_FLASHERR) {
+    //Serial.println("Error writing to flash");
+    return p;
+  } else {
+    //Serial.println("Unknown error");
+    return p;
+  }   
+}
